@@ -20,7 +20,7 @@ import BackButtonService from '../../../services/BackButtonService';
 import NavService, { OnNavigateCallback as OnNavigateCallback } from '@joplin/lib/services/NavService';
 import { ModelType } from '@joplin/lib/BaseModel';
 import FloatingActionButton from '../../buttons/FloatingActionButton';
-const { fileExtension, safeFileExtension } = require('@joplin/lib/path-utils');
+import { fileExtension, safeFileExtension } from '@joplin/lib/path-utils';
 import * as mimeUtils from '@joplin/lib/mime-utils';
 import ScreenHeader, { MenuOptionType } from '../../ScreenHeader';
 import NoteTagsDialog from '../NoteTagsDialog';
@@ -159,8 +159,6 @@ class NoteScreenComponent extends BaseScreenComponent<ComponentProps, State> imp
 	// eslint-disable-next-line @typescript-eslint/no-explicit-any -- Old code before rule was applied
 	private noteTagDialog_closeRequested: any;
 	// eslint-disable-next-line @typescript-eslint/no-explicit-any -- Old code before rule was applied
-	private onJoplinLinkClick_: any;
-	// eslint-disable-next-line @typescript-eslint/no-explicit-any -- Old code before rule was applied
 	private refreshResource: (resource: any, noteBody?: string)=> Promise<void>;
 	private selection: SelectionRange;
 	// eslint-disable-next-line @typescript-eslint/no-explicit-any -- Old code before rule was applied
@@ -285,14 +283,6 @@ class NoteScreenComponent extends BaseScreenComponent<ComponentProps, State> imp
 
 		this.noteTagDialog_closeRequested = () => {
 			this.setState({ noteTagDialogShown: false });
-		};
-
-		this.onJoplinLinkClick_ = async (msg: string) => {
-			try {
-				await CommandService.instance().execute('openItem', msg);
-			} catch (error) {
-				await this.props.dialogs.error(error.message);
-			}
 		};
 
 		// eslint-disable-next-line @typescript-eslint/no-explicit-any -- Old code before rule was applied
@@ -1091,6 +1081,15 @@ class NoteScreenComponent extends BaseScreenComponent<ComponentProps, State> imp
 				void this.showOnMap_onPress();
 			},
 		});
+		output.push({
+			title: _('Previous versions'),
+			onPress: () => {
+				this.props.dispatch({ type: 'SIDE_MENU_CLOSE' });
+				void NavService.go('NoteRevisionViewer', {
+					noteId: this.props.noteId,
+				});
+			},
+		});
 		if (note.source_url) {
 			output.push({
 				title: _('Go to source URL'),
@@ -1519,7 +1518,6 @@ class NoteScreenComponent extends BaseScreenComponent<ComponentProps, State> imp
 				bodyComponent =
 					!note || !note.body.trim() ? null : (
 						<NoteBodyViewer
-							onJoplinLinkClick={this.onJoplinLinkClick_}
 							style={this.styles().noteBodyViewer}
 							// Extra bottom padding to make it possible to scroll past the
 							// action button (so that it doesn't overlap the text)
@@ -1528,15 +1526,12 @@ class NoteScreenComponent extends BaseScreenComponent<ComponentProps, State> imp
 							noteMarkupLanguage={note.markup_language}
 							noteResources={this.state.noteResources}
 							highlightedKeywords={keywords}
-							themeId={this.props.themeId}
-							fontSize={this.props.viewerFontSize}
 							noteHash={this.props.noteHash}
 							onCheckboxChange={this.onBodyViewerCheckboxChange}
 							onMarkForDownload={this.onMarkForDownload}
 							onRequestEditResource={this.onEditResource}
 							onScroll={this.onBodyViewerScroll}
 							initialScroll={this.lastBodyScroll}
-							pluginStates={this.props.plugins}
 						/>
 					);
 			} else {
@@ -1561,7 +1556,6 @@ class NoteScreenComponent extends BaseScreenComponent<ComponentProps, State> imp
 						<TextInput
 							autoCapitalize="sentences"
 							style={this.styles().bodyTextInput}
-							ref="noteBodyTextField"
 							multiline={true}
 							value={note.body}
 							onChangeText={this.onPlainEditorTextChange}
@@ -1585,8 +1579,10 @@ class NoteScreenComponent extends BaseScreenComponent<ComponentProps, State> imp
 						toolbarEnabled={this.props.toolbarEnabled}
 						themeId={this.props.themeId}
 						noteId={this.props.noteId}
+						noteHash={this.props.noteHash}
 						initialText={note.body}
 						initialSelection={this.selection}
+						globalSearch={this.props.searchQuery}
 						onChange={this.onMarkdownEditorTextChange}
 						onSelectionChange={this.onMarkdownEditorSelectionChange}
 						onUndoRedoDepthChange={this.onUndoRedoDepthChange}
